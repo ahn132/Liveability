@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: liveability_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - liveability-network
+
+  # User Service
+  user-service:
+    build: ./user-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/liveability_db"
+      PORT: 3001
+      NODE_ENV: development
+      JWT_SECRET: "your-super-secret-jwt-key-change-this-in-production"
+    depends_on:
+      - postgres
+    networks:
+      - liveability-network
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      USER_SERVICE_URL: "http://user-service:3001"
+    depends_on:
+      - user-service
+    networks:
+      - liveability-network
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3002:3002"
+    depends_on:
+      - api-gateway
+    networks:
+      - liveability-network
+
+volumes:
+  postgres_data:
+
+networks:
+  liveability-network:
+    driver: bridge

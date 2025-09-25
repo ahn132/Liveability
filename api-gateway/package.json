@@ -1,11 +1,21 @@
 {
+  "name": "api-gateway",
+  "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "start": "npx fastify start server.ts --watch -l info -a 0.0.0.0",
+    "dev": "npx tsx watch server.ts",
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
     "fastify": "^5.5.0",
     "fastify-cli": "^7.4.0"
   },
-  "scripts": {
-    "start": "npx fastify start server.js --watch -l info -a 0.0.0.0"
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   }
 }
