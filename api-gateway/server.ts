@@ -1,112 +1,32 @@
 import cors from '@fastify/cors';
 import Fastify, { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import userRoutes from './routes/userRoutes.js';
 
-interface ApiResponse {
-  message: string;
-  timestamp: string;
-}
+//Environment variables
+const PORT = process.env.PORT!
+const HOST = process.env.HOST!
+const FRONTEND_URL = process.env.FRONTEND_URL!
+const FRONTEND_DEV_URL = process.env.FRONTEND_DEV_URL!
 
-interface UserServiceResponse {
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  error?: string;
-}
-
-// Plugin function
-async function routes(fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> {
-  // Register CORS
+//Root Plugin Function
+async function rootPlugin(fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> {
+  // Register CORS plugin
   await fastify.register(cors, {
-    origin: ["http://localhost:3002", "http://localhost:5173"],
+    origin: [FRONTEND_URL, FRONTEND_DEV_URL],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   });
 
-  // Health check
-  fastify.get<{ Reply: ApiResponse }>('/', async (request, reply): Promise<ApiResponse> => {
+  // Health check route
+  fastify.get('/', async (request, reply) => {
     return { 
       message: "API Gateway is running", 
       timestamp: new Date().toISOString() 
     };
   });
 
-  // User service routes
-  fastify.register(async function (fastify) {
-    // User registration
-    fastify.post('/api/users/register', async (request, reply) => {
-      try {
-        const response = await fetch('http://localhost:3001/users/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request.body)
-        });
-        
-        const data = await response.json() as UserServiceResponse;
-        
-        if (!response.ok) {
-          reply.code(response.status);
-          return data;
-        }
-        
-        return data;
-      } catch (error) {
-        fastify.log.error(error);
-        reply.code(500);
-        return { error: 'Service unavailable' };
-      }
-    });
-
-    // User login
-    fastify.post('/api/users/login', async (request, reply) => {
-      try {
-        const response = await fetch('http://localhost:3001/users/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request.body)
-        });
-        
-        const data = await response.json() as UserServiceResponse;
-        
-        if (!response.ok) {
-          reply.code(response.status);
-          return data;
-        }
-        
-        return data;
-      } catch (error) {
-        fastify.log.error(error);
-        reply.code(500);
-        return { error: 'Service unavailable' };
-      }
-    });
-
-    // Get user by ID
-    fastify.get('/api/users/:id', async (request, reply) => {
-      const { id } = request.params as { id: string };
-      
-      try {
-        const response = await fetch(`http://localhost:3001/users/${id}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await response.json() as UserServiceResponse;
-        
-        if (!response.ok) {
-          reply.code(response.status);
-          return data;
-        }
-        
-        return data;
-      } catch (error) {
-        fastify.log.error(error);
-        reply.code(500);
-        return { error: 'Service unavailable' };
-      }
-    });
-  });
+  // Register user routes plugin
+  await fastify.register(userRoutes);
 }
 
 // Create and start server
@@ -118,12 +38,12 @@ async function start() {
   });
   
   // Register routes
-  await fastify.register(routes);
+  await fastify.register(rootPlugin);
   
   // Start server
   try {
-    await fastify.listen({ port: 3000, host: '0.0.0.0' });
-    console.log('API Gateway listening on http://localhost:3000');
+    await fastify.listen({ port: parseInt(PORT), host: HOST });
+    console.log(`API Gateway listening on http://${HOST}:${PORT}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

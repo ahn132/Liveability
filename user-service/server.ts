@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import prisma from './database.js';
 
 interface User {
@@ -19,6 +21,12 @@ interface LoginRequest {
   email: string;
   password: string;
 }
+
+// Environment variables
+const PORT = process.env.PORT || '3001';
+const HOST = process.env.HOST || '0.0.0.0';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const SALT_ROUNDS = 12;
 
 const fastify = Fastify({
   logger: true
@@ -44,6 +52,17 @@ fastify.post('/users/register', async (request, reply) => {
   const { name, email, password } = request.body as RegisterRequest;
   
   try {
+    // Validate input
+    if (!name || !email || !password) {
+      reply.code(400);
+      return { error: 'Name, email, and password are required' };
+    }
+    
+    if (password.length < 6) {
+      reply.code(400);
+      return { error: 'Password must be at least 6 characters long' };
+    }
+    
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -54,16 +73,27 @@ fastify.post('/users/register', async (request, reply) => {
       return { error: 'User with this email already exists' };
     }
     
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    
     const user = await prisma.user.create({
-      data: { name, email, password }
+      data: { name, email, password: hashedPassword }
     });
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
     
     return { 
       user: { 
         id: user.id, 
         name: user.name, 
         email: user.email 
-      } 
+      },
+      token
     };
   } catch (error) {
     fastify.log.error(error);
@@ -77,21 +107,43 @@ fastify.post('/users/login', async (request, reply) => {
   const { email, password } = request.body as LoginRequest;
   
   try {
+    // Validate input
+    if (!email || !password) {
+      reply.code(400);
+      return { error: 'Email and password are required' };
+    }
+    
     const user = await prisma.user.findUnique({
       where: { email }
     });
     
-    if (!user || user.password !== password) {
+    if (!user) {
       reply.code(401);
       return { error: 'Invalid credentials' };
     }
+    
+    // Compare hashed password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      reply.code(401);
+      return { error: 'Invalid credentials' };
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
     
     return { 
       user: { 
         id: user.id, 
         name: user.name, 
         email: user.email 
-      } 
+      },
+      token
     };
   } catch (error) {
     fastify.log.error(error);
@@ -126,8 +178,8 @@ fastify.get('/users/:id', async (request, reply) => {
 // Start server
 const start = async () => {
   try {
-    await fastify.listen({ port: 3001, host: '0.0.0.0' });
-    console.log('User service listening on port 3001');
+    await fastify.listen({ port: parseInt(PORT), host: HOST });
+    console.log(`User service listening on http://${HOST}:${PORT}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
