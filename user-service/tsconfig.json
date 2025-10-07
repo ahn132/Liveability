@@ -19,7 +19,7 @@
   "include": [
     "**/*.ts",
     "**/*.js"
-  ],
+, "database.ts"  ],
   "exclude": [
     "node_modules",
     "dist"

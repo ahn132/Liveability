@@ -3,16 +3,15 @@ import cors from '@fastify/cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from './database.js';
+import 'dotenv/config';
 
 interface User {
   id: number;
   email: string;
-  name: string;
   password: string;
 }
 
 interface RegisterRequest {
-  name: string;
   email: string;
   password: string;
 }
@@ -23,13 +22,23 @@ interface LoginRequest {
 }
 
 // Environment variables
-const PORT = process.env.PORT || '3001';
-const HOST = process.env.HOST || '0.0.0.0';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const PORT = process.env.PORT!
+const HOST = process.env.HOST!
+const JWT_SECRET = process.env.JWT_SECRET!
 const SALT_ROUNDS = 12;
 
 const fastify = Fastify({
-  logger: true
+  logger: {
+    level: 'info',
+    transport: {
+      target: 'pino-pretty',  // Makes logs colorful and readable
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss',
+        ignore: 'pid,hostname'
+      }
+    }
+  }
 });
 
 // Register CORS
@@ -49,13 +58,15 @@ fastify.get('/health', async (request, reply) => {
 
 // User registration
 fastify.post('/users/register', async (request, reply) => {
-  const { name, email, password } = request.body as RegisterRequest;
+  const { email, password } = request.body as RegisterRequest;
+
+  console.log('Register request:', request.body);
   
   try {
     // Validate input
-    if (!name || !email || !password) {
+    if (!email || !password) {
       reply.code(400);
-      return { error: 'Name, email, and password are required' };
+      return { error: 'Email and password are required' };
     }
     
     if (password.length < 6) {
@@ -77,7 +88,7 @@ fastify.post('/users/register', async (request, reply) => {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword }
+      data: { email, password: hashedPassword}
     });
     
     // Generate JWT token
@@ -90,8 +101,7 @@ fastify.post('/users/register', async (request, reply) => {
     return { 
       user: { 
         id: user.id, 
-        name: user.name, 
-        email: user.email 
+        email: user.email,
       },
       token
     };

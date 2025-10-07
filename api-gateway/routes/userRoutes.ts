@@ -1,14 +1,6 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import axios from 'axios';
-
-interface UserServiceResponse {
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  error?: string;
-}
+import 'dotenv/config';
 
 //Environment variables
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL!
@@ -18,9 +10,16 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
 
   // User registration
   fastify.post('/api/users/register', async (request, reply) => {
+
+    if (!USER_SERVICE_URL) {
+      reply.code(500);
+      return { error: 'USER_SERVICE_URL is not set' };
+    }
+
     return axios.post(`${USER_SERVICE_URL}/users/register`, request.body)
     .then(response => {
-      return response.data as UserServiceResponse;
+      fastify.log.info('User registration response:', response.data);
+      return response.data;
     })
     .catch(error => {
       fastify.log.error(error);
@@ -37,7 +36,7 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
   fastify.post('/api/users/login', async (request, reply) => {
     return axios.post(`${USER_SERVICE_URL}/users/login`, request.body)
     .then(response => {
-      return response.data as UserServiceResponse;
+      return response.data;
     })
     .catch(error => {
       fastify.log.error(error);
@@ -56,7 +55,7 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
     
     return axios.get(`${USER_SERVICE_URL}/users/${id}`)
     .then(response => {
-      return response.data as UserServiceResponse;
+      return response.data;
     })
     .catch(error => {
       fastify.log.error(error);

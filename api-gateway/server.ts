@@ -1,18 +1,18 @@
 import cors from '@fastify/cors';
 import Fastify, { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import userRoutes from './routes/userRoutes.js';
+import 'dotenv/config';
 
 //Environment variables
 const PORT = process.env.PORT!
 const HOST = process.env.HOST!
 const FRONTEND_URL = process.env.FRONTEND_URL!
-const FRONTEND_DEV_URL = process.env.FRONTEND_DEV_URL!
 
 //Root Plugin Function
 async function rootPlugin(fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> {
   // Register CORS plugin
   await fastify.register(cors, {
-    origin: [FRONTEND_URL, FRONTEND_DEV_URL],
+    origin: [FRONTEND_URL],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   });
@@ -33,7 +33,15 @@ async function rootPlugin(fastify: FastifyInstance, opts: FastifyPluginOptions):
 async function start() {
   const fastify = Fastify({
     logger: {
-      level: 'info'
+      level: 'info',
+      transport: {
+        target: 'pino-pretty',  // Makes logs colorful and readable
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname'
+        }
+      }
     }
   });
   
