@@ -9,6 +9,15 @@ interface User {
   id: number;
   email: string;
   password: string;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  country: string | null;
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  } | null;
 }
 
 interface RegisterRequest {

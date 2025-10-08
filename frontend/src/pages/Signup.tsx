@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface SignupFormData {
@@ -9,6 +9,7 @@ interface SignupFormData {
 }
 
 function Signup(): React.JSX.Element {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
     password: '',
@@ -44,8 +45,8 @@ function Signup(): React.JSX.Element {
       password: formData.password,
     }).then(response => {
       console.log('Signup successful:', response.data);
-      alert('Account created successfully!');
-      // TODO: Redirect to login or dashboard
+      alert('Account created successfully! Please fill out your preferences.');
+      navigate('/preferences');
     }).catch(error => {
       console.error('Signup failed:', error);
       setError(error.response?.data?.error || 'Signup failed');

@@ -11,6 +11,11 @@ model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
-
+  street    String?
+  city      String?
+  state     String?
+  zipCode   String?
+  country   String?
+  location  Unsupported("geometry(Point, 4326)")?
   @@map("users")
 }
