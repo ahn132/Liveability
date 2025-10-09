@@ -10,6 +10,7 @@ interface SignupFormData {
 
 function Signup(): React.JSX.Element {
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL!;
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
     password: '',
@@ -19,17 +20,17 @@ function Signup(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
 
   // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
     // Clear error when user starts typing
     if (error) setError('');
-  };
+  }
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -40,7 +41,7 @@ function Signup(): React.JSX.Element {
     setLoading(true);
     setError('');
 
-    axios.post('http://localhost:3000/api/users/register', {
+    axios.post(`${API_URL}/api/users/register`, {
       email: formData.email,
       password: formData.password,
     }).then(response => {
@@ -53,7 +54,7 @@ function Signup(): React.JSX.Element {
     }).finally(() => {
       setLoading(false);
     });
-  };
+  }
 
   return (
     <div className="max-w-md mx-auto mt-12 p-5 bg-gray-50 rounded-lg shadow-md">

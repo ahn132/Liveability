@@ -28,25 +28,25 @@ function Preferences(): React.JSX.Element {
     'Walkable', 'Bike-friendly', 'Car-dependent'
   ];
 
-  const handleInterestToggle = (interest: string) => {
+  function handleInterestToggle(interest: string) {
     setPreferences(prev => ({
       ...prev,
       interests: prev.interests.includes(interest)
         ? prev.interests.filter(i => i !== interest)
         : [...prev.interests, interest]
     }));
-  };
+  }
 
-  const handleLifestyleToggle = (lifestyle: string) => {
+  function handleLifestyleToggle(lifestyle: string) {
     setPreferences(prev => ({
       ...prev,
       lifestyle: prev.lifestyle.includes(lifestyle)
         ? prev.lifestyle.filter(l => l !== lifestyle)
         : [...prev.lifestyle, lifestyle]
     }));
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
@@ -59,7 +59,7 @@ function Preferences(): React.JSX.Element {
       alert('Preferences saved successfully!');
       navigate('/dashboard');
     }, 1000);
-  };
+  }
 
   return (
     <div className="max-w-2xl mx-auto mt-12 p-6 bg-gray-50 rounded-lg shadow-md">

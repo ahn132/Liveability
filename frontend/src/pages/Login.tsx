@@ -1,57 +1,64 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
+interface LoginResponse {
+  user: {
+    id: string;
+    email: string;
+    street: string;
+  };
+  token: string;
+}
+
 function Login() : React.JSX.Element {
+  const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL!;
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      const response = await fetch('http://localhost:3000/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+    
+    axios.post(`${API_URL}/api/users/login`, formData)
+      .then(response => {
+        console.log('Login successful:', response.data as LoginResponse)
+        if (response.data.user.street) { //If user has their preferences set, redirect to dashboard; otherwise redirect to preferences
+          navigate('/dashboard');
+        } else {
+          navigate('/preferences');
+        }
+      })
+      .catch(error => {
+        console.error('Login failed:', error.response?.data?.error || error.message);
+        alert(`Login failed: ${error.response?.data?.error || 'Network error'}`);
       });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        console.log('Login successful:', data);
-        // TODO: Handle successful login (redirect, store token, etc.)
-        alert('Login successful!');
-      } else {
-        console.error('Login failed:', data.error);
-        alert(`Login failed: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed: Network error');
-    }
-  };
+  }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email">Email:</label>
+    <div className="max-w-md mx-auto mt-12 p-5 bg-gray-50 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+        Login
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email:
+          </label>
           <input
             type="email"
             id="email"
@@ -59,11 +66,13 @@ function Login() : React.JSX.Element {
             value={formData.email}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
           />
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password">Password:</label>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            Password:
+          </label>
           <input
             type="password"
             id="password"
@@ -71,15 +80,24 @@ function Login() : React.JSX.Element {
             value={formData.password}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
           />
         </div>
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
+        <button 
+          type="submit" 
+          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
           Login
         </button>
       </form>
-      <p style={{ textAlign: 'center', marginTop: '15px' }}>
-        Don't have an account? <Link to="/signup">Sign up</Link>
+      <p className="text-center mt-4 text-gray-600">
+        Don't have an account?{' '}
+        <Link 
+          to="/signup" 
+          className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
+        >
+          Sign up
+        </Link>
       </p>
     </div>
   );

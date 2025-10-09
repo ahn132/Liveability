@@ -157,11 +157,7 @@ fastify.post('/users/login', async (request, reply) => {
     );
     
     return { 
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        email: user.email 
-      },
+      user,
       token
     };
   } catch (error) {
@@ -178,7 +174,7 @@ fastify.get('/users/:id', async (request, reply) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
-      select: { id: true, name: true, email: true, createdAt: true }
+      select: { id: true, email: true}
     });
     
     if (!user) {
