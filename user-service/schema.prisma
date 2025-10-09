@@ -15,7 +15,6 @@ model User {
   city      String?
   state     String?
   zipCode   String?
-  country   String?
   location  Unsupported("geometry(Point, 4326)")?
   @@map("users")
 }

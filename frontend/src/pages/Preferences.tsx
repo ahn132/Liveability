@@ -1,57 +1,219 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import CommutePreferences from '../components/CommutePreferences';
+import HousingPreferences from '../components/HousingPreferences';
+import AmenitiesPreferences from '../components/AmenitiesPreferences';
 
-interface PreferencesData {
+interface CommutePreferencesData {
+  workLocation: {
+    street: string;
+    city: string;
+    zipCode: string;
+    state: string;
+  };
+  maxCommuteTime: number;
+  transportationMethod: string;
+}
+
+interface HousingPreferencesData {
+  homeType: string;
+  rentOrBuy: string;
+  rentPriceMin: number;
+  rentPriceMax: number;
+  buyPriceMin: number;
+  buyPriceMax: number;
+  bedrooms: number;
+  bathrooms: number;
+  parking: string;
+}
+
+interface AmenitiesPreferencesData {
   interests: string[];
-  budget: string;
   location: string;
   lifestyle: string[];
+  goodSchoolDistrict: boolean;
+  proximityToAmenities: string;
 }
+
+type Step = 'commute' | 'housing' | 'amenities';
 
 function Preferences(): React.JSX.Element {
   const navigate = useNavigate();
-  const [preferences, setPreferences] = useState<PreferencesData>({
-    interests: [],
-    budget: '',
-    location: '',
-    lifestyle: []
-  });
+  const [currentStep, setCurrentStep] = useState<Step>('commute');
   const [loading, setLoading] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
-  const interestOptions = [
-    'Restaurants', 'Shopping', 'Entertainment', 'Outdoor Activities',
-    'Cultural Events', 'Nightlife', 'Sports', 'Art & Museums'
-  ];
+  const [commutePreferences, setCommutePreferences] = useState<CommutePreferencesData>({
+    workLocation: {
+      street: '',
+      city: '',
+      zipCode: '',
+      state: '',
+    },
+    maxCommuteTime: 30,
+    transportationMethod: '',
+  });
 
-  const lifestyleOptions = [
-    'Family-friendly', 'Pet-friendly', 'Public Transportation',
-    'Walkable', 'Bike-friendly', 'Car-dependent'
-  ];
+  const [housingPreferences, setHousingPreferences] = useState<HousingPreferencesData>({
+    homeType: '',
+    rentOrBuy: '',
+    rentPriceMin: 1000,
+    rentPriceMax: 3000,
+    buyPriceMin: 300000,
+    buyPriceMax: 800000,
+    bedrooms: 0,
+    bathrooms: 0,
+    parking: ''
+  });
 
-  function handleInterestToggle(interest: string) {
-    setPreferences(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
-    }));
+  const [amenitiesPreferences, setAmenitiesPreferences] = useState<AmenitiesPreferencesData>({
+    interests: [],
+    location: '',
+    lifestyle: [],
+    goodSchoolDistrict: false,
+    proximityToAmenities: ''
+  });
+
+  function validateCommuteStep(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!commutePreferences.workLocation.street.trim()) {
+      errors.push('Street address is required');
+    }
+    if (!commutePreferences.workLocation.city.trim()) {
+      errors.push('City is required');
+    }
+    if (!commutePreferences.workLocation.state) {
+      errors.push('State is required');
+    }
+    if (!commutePreferences.workLocation.zipCode || commutePreferences.workLocation.zipCode.length !== 5) {
+      errors.push('Valid ZIP code is required');
+    }
+    if (!commutePreferences.transportationMethod) {
+      errors.push('Transportation method is required');
+    }
+    
+    return { isValid: errors.length === 0, errors };
   }
 
-  function handleLifestyleToggle(lifestyle: string) {
-    setPreferences(prev => ({
-      ...prev,
-      lifestyle: prev.lifestyle.includes(lifestyle)
-        ? prev.lifestyle.filter(l => l !== lifestyle)
-        : [...prev.lifestyle, lifestyle]
-    }));
+  function validateHousingStep(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!housingPreferences.homeType) {
+      errors.push('Home type is required');
+    }
+    if (!housingPreferences.rentOrBuy) {
+      errors.push('Rent or buy preference is required');
+    }
+    if (housingPreferences.rentOrBuy === 'rent' || housingPreferences.rentOrBuy === 'either') {
+      if (housingPreferences.rentPriceMin >= housingPreferences.rentPriceMax) {
+        errors.push('Minimum rent must be less than maximum rent');
+      }
+    }
+    if (housingPreferences.rentOrBuy === 'buy' || housingPreferences.rentOrBuy === 'either') {
+      if (housingPreferences.buyPriceMin >= housingPreferences.buyPriceMax) {
+        errors.push('Minimum buy price must be less than maximum buy price');
+      }
+    }
+    
+    return { isValid: errors.length === 0, errors };
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function validateAmenitiesStep(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!amenitiesPreferences.interests.length) {
+      errors.push('At least one interest is required');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+  
+  function handleBack() {
+    if (currentStep === 'housing') {
+      setCurrentStep('commute');
+    } else if (currentStep === 'amenities') {
+      setCurrentStep('housing');
+    }
+  }
+
+  function handleNext() {
+    let validation: { isValid: boolean; errors: string[] };
+    
+    if (currentStep === 'commute') {
+      validation = validateCommuteStep();
+      if (!validation.isValid) {
+        setErrors(validation.errors);
+        return;
+      }
+      
+      setSaving(true);
+      axios.post(`/api/preferences/commute`, commutePreferences)
+        .then(() => {
+        setCurrentStep('housing');
+      })
+      .catch(error => {
+        console.error('Error saving preferences:', error);
+        setErrors(['Failed to save preferences. Please try again.']);
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+    } 
+    else if (currentStep === 'housing') {
+      validation = validateHousingStep();
+      if (!validation.isValid) {
+        setErrors(validation.errors);
+        return;
+      }
+      
+      axios.post(`/api/preferences/housing`, housingPreferences)
+        .then(() => {
+          setCurrentStep('amenities');
+        })
+        .catch(error => {
+          console.error('Error saving preferences:', error);
+          setErrors(['Failed to save preferences. Please try again.']);
+        })
+        .finally(() => {
+          setSaving(false);
+        });
+    }
+    else if (currentStep === 'amenities') {
+      validation = validateAmenitiesStep();
+      if (!validation.isValid) {
+        setErrors(validation.errors);
+        return;
+      }
+    }
+
+    axios.post(`/api/preferences/amenities`, amenitiesPreferences)
+      .then(() => {
+        setCurrentStep('amenities');
+      })
+      .catch(error => {
+        console.error('Error saving preferences:', error);
+        setErrors(['Failed to save preferences. Please try again.']);
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  }
+
+  function handleSubmit() {
     setLoading(true);
 
+    // Combine all preferences
+    const allPreferences = {
+      commute: commutePreferences,
+      housing: housingPreferences,
+      amenities: amenitiesPreferences
+    };
+
     // TODO: Save preferences to backend
-    console.log('Preferences:', preferences);
+    console.log('All preferences:', allPreferences);
     
     // Simulate API call
     setTimeout(() => {
@@ -61,97 +223,47 @@ function Preferences(): React.JSX.Element {
     }, 1000);
   }
 
+  function renderCurrentStep() {
+    switch (currentStep) {
+      case 'commute':
+        return (
+          <CommutePreferences
+            preferences={commutePreferences}
+            onUpdate={setCommutePreferences}
+            onNext={handleNext}
+            saving={saving}
+            errors={errors}
+          />
+        );
+      case 'housing':
+        return (
+          <HousingPreferences
+            preferences={housingPreferences}
+            onUpdate={setHousingPreferences}
+            onNext={handleNext}
+            onBack={handleBack}
+            saving={saving}
+            errors={errors}
+          />
+        );
+      case 'amenities':
+        return (
+          <AmenitiesPreferences
+            preferences={amenitiesPreferences}
+            onUpdate={setAmenitiesPreferences}
+            onBack={handleBack}
+            onNext={handleNext}
+            loading={loading}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
-    <div className="max-w-2xl mx-auto mt-12 p-6 bg-gray-50 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-        Tell us about your preferences
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Interests */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            What are you interested in? (Select all that apply)
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {interestOptions.map(interest => (
-              <label key={interest} className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={preferences.interests.includes(interest)}
-                  onChange={() => handleInterestToggle(interest)}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700">{interest}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Budget */}
-        <div>
-          <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-1">
-            Budget Range
-          </label>
-          <select
-            id="budget"
-            value={preferences.budget}
-            onChange={(e) => setPreferences(prev => ({ ...prev, budget: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">Select budget range</option>
-            <option value="low">$0 - $50k</option>
-            <option value="medium">$50k - $100k</option>
-            <option value="high">$100k+</option>
-          </select>
-        </div>
-
-        {/* Location */}
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-            Preferred Location Type
-          </label>
-          <select
-            id="location"
-            value={preferences.location}
-            onChange={(e) => setPreferences(prev => ({ ...prev, location: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">Select location type</option>
-            <option value="urban">Urban</option>
-            <option value="suburban">Suburban</option>
-            <option value="rural">Rural</option>
-          </select>
-        </div>
-
-        {/* Lifestyle */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Lifestyle Preferences (Select all that apply)
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {lifestyleOptions.map(lifestyle => (
-              <label key={lifestyle} className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={preferences.lifestyle.includes(lifestyle)}
-                  onChange={() => handleLifestyleToggle(lifestyle)}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700">{lifestyle}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-        >
-          {loading ? 'Saving Preferences...' : 'Save Preferences'}
-        </button>
-      </form>
+    <div>
+      {renderCurrentStep()}
     </div>
   );
 }
