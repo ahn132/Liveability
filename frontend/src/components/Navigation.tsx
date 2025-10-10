@@ -1,8 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  function handleLogout() {
+    logout();
+  }
 
   return (
     <nav style={{ 
@@ -17,7 +23,7 @@ const Navigation: React.FC = () => {
         </Link>
         
         <div>
-          {location.pathname === '/' && (
+          {!isAuthenticated && location.pathname === '/' && (
             <>
               <Link 
                 to="/login" 
@@ -48,8 +54,11 @@ const Navigation: React.FC = () => {
             </>
           )}
           
-          {(location.pathname === '/dashboard' || location.pathname === '/profile') && (
+          {isAuthenticated && (
             <>
+              <span style={{ margin: '0 10px', color: '#6c757d' }}>
+                Welcome, {user?.email}
+              </span>
               <Link 
                 to="/dashboard" 
                 style={{ 
@@ -72,6 +81,20 @@ const Navigation: React.FC = () => {
               >
                 Profile
               </Link>
+              <button 
+                onClick={handleLogout}
+                style={{ 
+                  margin: '0 10px', 
+                  padding: '8px 16px', 
+                  backgroundColor: '#dc3545', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Logout
+              </button>
             </>
           )}
         </div>

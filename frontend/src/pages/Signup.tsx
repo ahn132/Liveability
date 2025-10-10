@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../utils/api';
 
 interface SignupFormData {
   email: string;
@@ -10,14 +11,15 @@ interface SignupFormData {
 
 function Signup(): React.JSX.Element {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL!;
-  const [formData, setFormData] = useState<SignupFormData>({
+  const location = useLocation();
+  const { user, login, authLoading, authError } = useAuth();
+  const [formData, setFormData] = useState<SignupFormData>({  
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [signupError, setSignupError] = useState<string>('');
+
 
   // Handle input changes
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -25,8 +27,8 @@ function Signup(): React.JSX.Element {
       ...formData,
       [e.target.name]: e.target.value
     });
-    // Clear error when user starts typing
-    if (error) setError('');
+    // Clear errors when user starts typing
+    if (signupError) setSignupError('');
   }
 
   // Handle form submission
@@ -34,25 +36,36 @@ function Signup(): React.JSX.Element {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setSignupError('Passwords do not match');
       return;
     }
 
-    setLoading(true);
-    setError('');
+    setSignupError('');
 
-    axios.post(`${API_URL}/api/users/register`, {
+    // First create the account
+    api.post('/api/users/register', {
       email: formData.email,
       password: formData.password,
-    }).then(response => {
-      console.log('Signup successful:', response.data);
-      alert('Account created successfully! Please fill out your preferences.');
-      navigate('/preferences');
-    }).catch(error => {
+    })
+    .then(() => {
+      // Then automatically log the user in
+      return login(formData.email, formData.password);
+    })
+    .then(() => {
+      if (!user?.street) {
+        navigate('/preferences', { replace: true }); // If the user has not yet set their preferences, redirect to preferences
+      } else {
+        const from = location.state?.from?.pathname || '/dashboard'; // Otherwise, redirect to page that redirected the user to signup or default to dashboard
+        navigate(from, { replace: true });
+      }
+    })
+    .catch(error => {
       console.error('Signup failed:', error);
-      setError(error.response?.data?.error || 'Signup failed');
-    }).finally(() => {
-      setLoading(false);
+      if (error.response?.data?.error) {
+        setSignupError(error.response.data.error);
+      } else {
+        setSignupError('Signup failed. Please try again.');
+      }
     });
   }
 
@@ -62,9 +75,15 @@ function Signup(): React.JSX.Element {
         Sign Up
       </h2>
       
-      {error && (
+      {signupError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+          {signupError}
+        </div>
+      )}
+      
+      {authError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {authError}
         </div>
       )}
       
@@ -80,7 +99,7 @@ function Signup(): React.JSX.Element {
             value={formData.email}
             onChange={handleChange}
             required
-            disabled={loading}
+            disabled={authLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
         </div>
@@ -96,7 +115,7 @@ function Signup(): React.JSX.Element {
             value={formData.password}
             onChange={handleChange}
             required
-            disabled={loading}
+            disabled={authLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
         </div>
@@ -112,17 +131,17 @@ function Signup(): React.JSX.Element {
             value={formData.confirmPassword}
             onChange={handleChange}
             required
-            disabled={loading}
+            disabled={authLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
         </div>
         
         <button 
           type="submit" 
-          disabled={loading}
+          disabled={authLoading}
           className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          {loading ? 'Creating Account...' : 'Sign Up'}
+          {authLoading ? 'Creating Account...' : 'Sign Up'}
         </button>
       </form>
       

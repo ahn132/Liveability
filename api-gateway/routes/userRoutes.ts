@@ -49,6 +49,57 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
     });
   });
 
+  // Save commute preferences
+  fastify.post('/api/users/commute-preferences', async (request, reply) => {
+    return axios.post(`${USER_SERVICE_URL}/users/commute-preferences`, request.body)
+    .then(response => {
+      return response.data;
+    })
+    .catch(error => {
+      fastify.log.error(error);
+      if (error.response) {
+        reply.code(error.response.status);
+        return error.response.data;
+      }
+      reply.code(500);
+      return { error: 'Service unavailable' };
+    });
+  });
+
+  // Save housing preferences
+  fastify.post('/api/users/housing-preferences', async (request, reply) => {
+    return axios.post(`${USER_SERVICE_URL}/users/housing-preferences`, request.body)
+    .then(response => {
+      return response.data;
+    })
+    .catch(error => {
+      fastify.log.error(error);
+      if (error.response) {
+        reply.code(error.response.status);
+        return error.response.data;
+      }
+      reply.code(500);
+      return { error: 'Service unavailable' };
+    });
+  });
+
+  // Save amenities preferences
+  fastify.post('/api/users/amenities-preferences', async (request, reply) => {
+    return axios.post(`${USER_SERVICE_URL}/users/amenities-preferences`, request.body)
+    .then(response => {
+      return response.data;
+    })
+    .catch(error => {
+      fastify.log.error(error);
+      if (error.response) {
+        reply.code(error.response.status);
+        return error.response.data;
+      }
+      reply.code(500);
+      return { error: 'Service unavailable' };
+    });
+  });
+
   // Get user by ID
   fastify.get('/api/users/:id', async (request, reply) => {
     const { id } = request.params as { id: string };

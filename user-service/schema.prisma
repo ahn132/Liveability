@@ -16,5 +16,7 @@ model User {
   state     String?
   zipCode   String?
   location  Unsupported("geometry(Point, 4326)")?
+  maxCommuteTime Int?
+  transportationMethod String?
   @@map("users")
 }

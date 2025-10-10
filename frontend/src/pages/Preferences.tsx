@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import CommutePreferences from '../components/CommutePreferences';
 import HousingPreferences from '../components/HousingPreferences';
 import AmenitiesPreferences from '../components/AmenitiesPreferences';
@@ -41,7 +41,6 @@ type Step = 'commute' | 'housing' | 'amenities';
 function Preferences(): React.JSX.Element {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('commute');
-  const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -150,7 +149,7 @@ function Preferences(): React.JSX.Element {
       }
       
       setSaving(true);
-      axios.post(`/api/preferences/commute`, commutePreferences)
+      api.post('/api/users/commute-preferences', commutePreferences)
         .then(() => {
         setCurrentStep('housing');
       })
@@ -169,7 +168,7 @@ function Preferences(): React.JSX.Element {
         return;
       }
       
-      axios.post(`/api/preferences/housing`, housingPreferences)
+      api.post('/api/users/housing-preferences', housingPreferences)
         .then(() => {
           setCurrentStep('amenities');
         })
@@ -189,9 +188,11 @@ function Preferences(): React.JSX.Element {
       }
     }
 
-    axios.post(`/api/preferences/amenities`, amenitiesPreferences)
+    setSaving(true);
+    api.post('/api/users/amenities-preferences', amenitiesPreferences)
       .then(() => {
-        setCurrentStep('amenities');
+        alert('Preferences saved successfully!');
+        navigate('/dashboard');
       })
       .catch(error => {
         console.error('Error saving preferences:', error);
@@ -202,26 +203,6 @@ function Preferences(): React.JSX.Element {
       });
   }
 
-  function handleSubmit() {
-    setLoading(true);
-
-    // Combine all preferences
-    const allPreferences = {
-      commute: commutePreferences,
-      housing: housingPreferences,
-      amenities: amenitiesPreferences
-    };
-
-    // TODO: Save preferences to backend
-    console.log('All preferences:', allPreferences);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      alert('Preferences saved successfully!');
-      navigate('/dashboard');
-    }, 1000);
-  }
 
   function renderCurrentStep() {
     switch (currentStep) {
@@ -253,7 +234,7 @@ function Preferences(): React.JSX.Element {
             onUpdate={setAmenitiesPreferences}
             onBack={handleBack}
             onNext={handleNext}
-            loading={loading}
+            loading={saving}
           />
         );
       default:

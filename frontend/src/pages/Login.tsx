@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
-interface LoginResponse {
-  user: {
-    id: string;
-    email: string;
-    street: string;
-  };
-  token: string;
-}
-
 function Login() : React.JSX.Element {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL!;
+  const location = useLocation();
+  const { user, login, authLoading, authError } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
@@ -34,18 +26,17 @@ function Login() : React.JSX.Element {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
-    axios.post(`${API_URL}/api/users/login`, formData)
-      .then(response => {
-        console.log('Login successful:', response.data as LoginResponse)
-        if (response.data.user.street) { //If user has their preferences set, redirect to dashboard; otherwise redirect to preferences
-          navigate('/dashboard');
+    login(formData.email, formData.password)
+      .then(() => {
+        if (!user?.street) {
+          navigate('/preferences', { replace: true }); // If the user has not yet set their preferences, redirect to preferences
         } else {
-          navigate('/preferences');
+          const from = location.state?.from?.pathname || '/dashboard'; // Otherwise, redirect to page that redirected the user to login or default to dashboard
+          navigate(from, { replace: true });
         }
       })
       .catch(error => {
-        console.error('Login failed:', error.response?.data?.error || error.message);
-        alert(`Login failed: ${error.response?.data?.error || 'Network error'}`);
+        console.error('Login failed:', error.message);
       });
   }
 
@@ -54,6 +45,13 @@ function Login() : React.JSX.Element {
       <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
         Login
       </h2>
+      
+      {authError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {authError}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -85,9 +83,10 @@ function Login() : React.JSX.Element {
         </div>
         <button 
           type="submit" 
-          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          disabled={authLoading}
+          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          Login
+          {authLoading ? 'Logging in...' : 'Login'}
         </button>
       </form>
       <p className="text-center mt-4 text-gray-600">

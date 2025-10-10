@@ -30,6 +30,43 @@ interface LoginRequest {
   password: string;
 }
 
+interface CommutePreferencesRequest {
+  commutePreferences: {
+    workLocation: {
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    };
+    maxCommuteTime: number;
+    transportationMethod: string;
+  };
+}
+
+interface HousingPreferencesRequest {
+  housingPreferences: {
+    homeType: string;
+    rentOrBuy: string;
+    rentPriceMin: number;
+    rentPriceMax: number;
+    buyPriceMin: number;
+    buyPriceMax: number;
+    bedrooms: number;
+    bathrooms: number;
+    parking: string;
+  };
+}
+
+interface AmenitiesPreferencesRequest {
+  amenitiesPreferences: {
+    interests: string[];
+    location: string;
+    lifestyle: string[];
+    goodSchoolDistrict: boolean;
+    proximityToAmenities: string;
+  };
+}
+
 // Environment variables
 const PORT = process.env.PORT!
 const HOST = process.env.HOST!
@@ -187,6 +224,48 @@ fastify.get('/users/:id', async (request, reply) => {
     fastify.log.error(error);
     reply.code(500);
     return { error: 'Failed to fetch user' };
+  }
+});
+
+// Save commute preferences
+fastify.post('/users/commute-preferences', async (request, reply) => {
+  const { commutePreferences } = request.body as CommutePreferencesRequest;
+  
+  try {
+    // Extract token from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401);
+      return { error: 'Authorization token required' };
+    }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Verify and decode JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+    
+    // Update user with commute preferences
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { 
+        street: commutePreferences.workLocation.street,
+        city: commutePreferences.workLocation.city,
+        state: commutePreferences.workLocation.state,
+        zipCode: commutePreferences.workLocation.zipCode,
+        maxCommuteTime: commutePreferences.maxCommuteTime,
+        transportationMethod: commutePreferences.transportationMethod
+      }
+    });
+    
+    return { success: true, user: { id: user.id, email: user.email } };
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      reply.code(401);
+      return { error: 'Invalid token' };
+    }
+    fastify.log.error(error);
+    reply.code(500);
+    return { error: 'Failed to save commute preferences' };
   }
 });
 
