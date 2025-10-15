@@ -30,10 +30,13 @@ function CommutePreferences({ preferences, onUpdate, onNext, saving, errors }: C
     });
   }
 
-  function handleMaxCommuteTimeChange(value: number) {
+  function handleMaxCommuteTimeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    // Remove leading zeros and parse
+    const numericValue = parseInt(value.replace(/^0+/, '') || '0', 10);
     onUpdate({
       ...preferences,
-      maxCommuteTime: value
+      maxCommuteTime: numericValue
     });
   }
 
@@ -161,8 +164,8 @@ function CommutePreferences({ preferences, onUpdate, onNext, saving, errors }: C
             min="5"
             max="120"
             step="5"
-            value={preferences.maxCommuteTime}
-            onChange={(e) => handleMaxCommuteTimeChange(parseInt(e.target.value) || 0)}
+            value={preferences.maxCommuteTime || ''}
+            onChange={handleMaxCommuteTimeChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
             placeholder="30"
           />

@@ -18,5 +18,25 @@ model User {
   location  Unsupported("geometry(Point, 4326)")?
   maxCommuteTime Int?
   transportationMethod String?
+  
+  // Housing preferences
+  homeType String?
+  rentOrBuy String?
+  rentPriceMin Int?
+  rentPriceMax Int?
+  buyPriceMin Int?
+  buyPriceMax Int?
+  bedrooms Int?
+  bathrooms Int?
+  parking String?
+  
+  // Amenities preferences
+  interests String[]
+  location String?
+  lifestyle String[]
+  goodSchoolDistrict Boolean?
+  proximityToAmenities String?
+  topAmenities String[]
+  
   @@map("users")
 }

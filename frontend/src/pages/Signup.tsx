@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -12,13 +12,25 @@ interface SignupFormData {
 function Signup(): React.JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login, authLoading, authError } = useAuth();
+  const { user, login, authLoading, authError, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<SignupFormData>({  
     email: '',
     password: '',
     confirmPassword: ''
   });
   const [signupError, setSignupError] = useState<string>('');
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!user?.street) {
+        navigate('/preferences', { replace: true });
+      } else {
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate, location.state]);
 
 
   // Handle input changes
@@ -67,6 +79,24 @@ function Signup(): React.JSX.Element {
         setSignupError('Signup failed. Please try again.');
       }
     });
+  }
+
+  // Don't render signup form if already authenticated
+  if (isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto mt-12 p-5 bg-gray-50 rounded-lg shadow-md">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Already Logged In</h2>
+          <p className="text-gray-600 mb-4">You are already authenticated.</p>
+          <Link 
+            to="/dashboard" 
+            className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors duration-200"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

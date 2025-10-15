@@ -34,6 +34,7 @@ interface AmenitiesPreferencesData {
   lifestyle: string[];
   goodSchoolDistrict: boolean;
   proximityToAmenities: string;
+  topAmenities: string[];
 }
 
 type Step = 'commute' | 'housing' | 'amenities';
@@ -72,7 +73,8 @@ function Preferences(): React.JSX.Element {
     location: '',
     lifestyle: [],
     goodSchoolDistrict: false,
-    proximityToAmenities: ''
+    proximityToAmenities: '',
+    topAmenities: ['', '', '']
   });
 
   function validateCommuteStep(): { isValid: boolean; errors: string[] } {
@@ -186,21 +188,21 @@ function Preferences(): React.JSX.Element {
         setErrors(validation.errors);
         return;
       }
+      
+      setSaving(true);
+      api.post('/api/users/amenities-preferences', amenitiesPreferences)
+        .then(() => {
+          alert('Preferences saved successfully!');
+          navigate('/dashboard');
+        })
+        .catch(error => {
+          console.error('Error saving preferences:', error);
+          setErrors(['Failed to save preferences. Please try again.']);
+        })
+        .finally(() => {
+          setSaving(false);
+        });
     }
-
-    setSaving(true);
-    api.post('/api/users/amenities-preferences', amenitiesPreferences)
-      .then(() => {
-        alert('Preferences saved successfully!');
-        navigate('/dashboard');
-      })
-      .catch(error => {
-        console.error('Error saving preferences:', error);
-        setErrors(['Failed to save preferences. Please try again.']);
-      })
-      .finally(() => {
-        setSaving(false);
-      });
   }
 
 

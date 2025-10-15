@@ -6,6 +6,7 @@ interface AmenitiesPreferencesData {
   lifestyle: string[];
   goodSchoolDistrict: boolean;
   proximityToAmenities: string;
+  topAmenities: string[];
 }
 
 interface AmenitiesPreferencesProps {
@@ -35,9 +36,24 @@ function AmenitiesPreferences({ preferences, onUpdate, onBack, onNext, loading }
     });
   }
 
+  function handleTopAmenitySelect(amenity: string, rank: number) {
+    const newTopAmenities = [...preferences.topAmenities];
+    newTopAmenities[rank] = amenity;
+    onUpdate({
+      ...preferences,
+      topAmenities: newTopAmenities
+    });
+  }
+
   const interestOptions = [
     'Restaurants', 'Shopping', 'Entertainment', 'Outdoor Activities',
     'Cultural Events', 'Nightlife', 'Sports', 'Art & Museums'
+  ];
+
+  const amenityOptions = [
+    'Grocery Store', 'Gym/Fitness Center', 'Coffee Shop', 'Library',
+    'Park', 'Pharmacy', 'Bank', 'Gas Station', 'Hospital/Medical',
+    'Public Transportation', 'Shopping Mall', 'Restaurant'
   ];
 
   const lifestyleOptions = [
@@ -78,6 +94,34 @@ function AmenitiesPreferences({ preferences, onUpdate, onBack, onNext, loading }
                 />
                 <span className="text-sm text-gray-700">{interest}</span>
               </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Top 3 Amenities */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Rank your top 3 most important amenities (in order of priority)
+          </label>
+          <div className="space-y-3">
+            {[0, 1, 2].map(rank => (
+              <div key={rank} className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                  {rank + 1}
+                </div>
+                <select
+                  value={preferences.topAmenities[rank] || ''}
+                  onChange={(e) => handleTopAmenitySelect(e.target.value, rank)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                >
+                  <option value="">Select amenity</option>
+                  {amenityOptions.map(amenity => (
+                    <option key={amenity} value={amenity}>
+                      {amenity}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ))}
           </div>
         </div>

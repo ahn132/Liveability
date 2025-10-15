@@ -31,40 +31,35 @@ interface LoginRequest {
 }
 
 interface CommutePreferencesRequest {
-  commutePreferences: {
-    workLocation: {
+  workLocation: {
       street: string;
       city: string;
       state: string;
       zipCode: string;
-    };
-    maxCommuteTime: number;
-    transportationMethod: string;
   };
+  maxCommuteTime: number;
+  transportationMethod: string;
 }
 
 interface HousingPreferencesRequest {
-  housingPreferences: {
-    homeType: string;
-    rentOrBuy: string;
-    rentPriceMin: number;
-    rentPriceMax: number;
-    buyPriceMin: number;
-    buyPriceMax: number;
-    bedrooms: number;
-    bathrooms: number;
-    parking: string;
-  };
+  homeType: string;
+  rentOrBuy: string;
+  rentPriceMin: number;
+  rentPriceMax: number;
+  buyPriceMin: number;
+  buyPriceMax: number;
+  bedrooms: number;
+  bathrooms: number;
+  parking: string;
 }
 
 interface AmenitiesPreferencesRequest {
-  amenitiesPreferences: {
-    interests: string[];
-    location: string;
-    lifestyle: string[];
-    goodSchoolDistrict: boolean;
-    proximityToAmenities: string;
-  };
+  interests: string[];
+  location: string;
+  lifestyle: string[];
+  goodSchoolDistrict: boolean;
+  proximityToAmenities: string;
+  topAmenities: string[];
 }
 
 // Environment variables
@@ -229,7 +224,7 @@ fastify.get('/users/:id', async (request, reply) => {
 
 // Save commute preferences
 fastify.post('/users/commute-preferences', async (request, reply) => {
-  const { commutePreferences } = request.body as CommutePreferencesRequest;
+  const commutePreferences = request.body as CommutePreferencesRequest;
   
   try {
     // Extract token from Authorization header
@@ -266,6 +261,93 @@ fastify.post('/users/commute-preferences', async (request, reply) => {
     fastify.log.error(error);
     reply.code(500);
     return { error: 'Failed to save commute preferences' };
+  }
+});
+
+// Save housing preferences
+fastify.post('/users/housing-preferences', async (request, reply) => {
+  const housingPreferences= request.body as HousingPreferencesRequest;
+  
+  try {
+    // Extract token from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401);
+      return { error: 'Authorization token required' };
+    }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Verify and decode JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+    
+    // Update user with housing preferences
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { 
+        homeType: housingPreferences.homeType,
+        rentOrBuy: housingPreferences.rentOrBuy,
+        rentPriceMin: housingPreferences.rentPriceMin,
+        rentPriceMax: housingPreferences.rentPriceMax,
+        buyPriceMin: housingPreferences.buyPriceMin,
+        buyPriceMax: housingPreferences.buyPriceMax,
+        bedrooms: housingPreferences.bedrooms,
+        bathrooms: housingPreferences.bathrooms,
+        parking: housingPreferences.parking
+      }
+    });
+    
+    return { success: true, user: { id: user.id, email: user.email } };
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      reply.code(401);
+      return { error: 'Invalid token' };
+    }
+    fastify.log.error(error);
+    reply.code(500);
+    return { error: 'Failed to save housing preferences' };
+  }
+});
+
+// Save amenities preferences
+fastify.post('/users/amenities-preferences', async (request, reply) => {
+  const amenitiesPreferences = request.body as AmenitiesPreferencesRequest;
+  
+  try {
+    // Extract token from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      reply.code(401);
+      return { error: 'Authorization token required' };
+    }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Verify and decode JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+    
+    // Update user with amenities preferences
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { 
+        interests: amenitiesPreferences.interests,
+        location: amenitiesPreferences.location,
+        lifestyle: amenitiesPreferences.lifestyle,
+        goodSchoolDistrict: amenitiesPreferences.goodSchoolDistrict,
+        proximityToAmenities: amenitiesPreferences.proximityToAmenities,
+        topAmenities: amenitiesPreferences.topAmenities
+      }
+    });
+    
+    return { success: true, user: { id: user.id, email: user.email } };
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      reply.code(401);
+      return { error: 'Invalid token' };
+    }
+    fastify.log.error(error);
+    reply.code(500);
+    return { error: 'Failed to save amenities preferences' };
   }
 });
 

@@ -22,6 +22,21 @@ interface HousingPreferencesProps {
 }
 
 function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, errors }: HousingPreferencesProps): React.JSX.Element {
+  function handleHomeTypeChange(homeType: string) {
+    const updatedPreferences = { ...preferences, homeType };
+    
+    // If changing to Apartment, auto-set rentOrBuy to "rent"
+    if (homeType === 'apartment') {
+      updatedPreferences.rentOrBuy = 'rent';
+    }
+    
+    // If changing from Apartment to another type and Studio is selected, reset to "Any"
+    if (preferences.homeType === 'apartment' && homeType !== 'apartment' && preferences.bedrooms === -1) {
+      updatedPreferences.bedrooms = 0;
+    }
+    
+    onUpdate(updatedPreferences);
+  }
   function handleRentMinChange(value: number) {
     if (value <= preferences.rentPriceMax) {
       onUpdate({ ...preferences, rentPriceMin: value });
@@ -46,18 +61,26 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
     }
   }
 
+  function handleBedroomsChange(value: number) {
+    const updatedPreferences = { ...preferences, bedrooms: value };
+    
+    // If Studio is selected (bedrooms = -1), set bathrooms to 1
+    if (value === -1) {
+      updatedPreferences.bathrooms = 1;
+    }
+    
+    onUpdate(updatedPreferences);
+  }
+
   const homeTypeOptions = [
-    'Apartment', 'Condo', 'Townhouse', 'Single Family House',
-    'Duplex', 'Studio', 'Loft', 'Mobile Home'
+    'Apartment', 'Condo', 'Townhouse', 'House',
+    'Duplex'
   ];
 
   const rentOrBuyOptions = [
     'Rent', 'Buy', 'Either'
   ];
 
-  const parkingOptions = [
-    'No Parking', 'Street Parking', 'Assigned Parking', 'Garage', 'Multiple Spaces'
-  ];
 
   return (
     <div className="max-w-2xl mx-auto mt-12 p-6 bg-gray-50 rounded-lg shadow-md">
@@ -90,8 +113,8 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
           <select
             id="homeType"
             value={preferences.homeType}
-            onChange={(e) => onUpdate({ ...preferences, homeType: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            onChange={(e) => handleHomeTypeChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
           >
             <option value="">Select home type</option>
             {homeTypeOptions.map(option => (
@@ -104,14 +127,21 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
 
         {/* Rent or Buy */}
         <div>
-          <label htmlFor="rentOrBuy" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="rentOrBuy" className={`block text-sm font-medium mb-1 ${
+            preferences.homeType === 'apartment' ? 'text-gray-400' : 'text-gray-700'
+          }`}>
             Rent or Buy
           </label>
           <select
             id="rentOrBuy"
             value={preferences.rentOrBuy}
             onChange={(e) => onUpdate({ ...preferences, rentOrBuy: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            disabled={preferences.homeType === 'apartment'}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              preferences.homeType === 'apartment' 
+                ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                : 'bg-white'
+            }`}
           >
             <option value="">Select preference</option>
             {rentOrBuyOptions.map(option => (
@@ -230,10 +260,11 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
             <select
               id="bedrooms"
               value={preferences.bedrooms}
-              onChange={(e) => onUpdate({ ...preferences, bedrooms: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              onChange={(e) => handleBedroomsChange(parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
             >
               <option value={0}>Any</option>
+              {preferences.homeType === 'apartment' && <option value={-1}>Studio</option>}
               <option value={1}>1</option>
               <option value={2}>2</option>
               <option value={3}>3</option>
@@ -242,14 +273,21 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
             </select>
           </div>
           <div>
-            <label htmlFor="bathrooms" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="bathrooms" className={`block text-sm font-medium mb-1 ${
+              preferences.bedrooms === -1 ? 'text-gray-400' : 'text-gray-700'
+            }`}>
               Number of Bathrooms
             </label>
             <select
               id="bathrooms"
               value={preferences.bathrooms}
               onChange={(e) => onUpdate({ ...preferences, bathrooms: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={preferences.bedrooms === -1}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                preferences.bedrooms === -1 
+                  ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                  : 'bg-white'
+              }`}
             >
               <option value={0}>Any</option>
               <option value={1}>1</option>
@@ -264,22 +302,20 @@ function HousingPreferences({ preferences, onUpdate, onNext, onBack, saving, err
 
         {/* Parking */}
         <div>
-          <label htmlFor="parking" className="block text-sm font-medium text-gray-700 mb-1">
-            Parking Requirements
+          <label className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              checked={preferences.parking === 'required'}
+              onChange={(e) => onUpdate({ 
+                ...preferences, 
+                parking: e.target.checked ? 'required' : 'not_required' 
+              })}
+              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              Parking Required
+            </span>
           </label>
-          <select
-            id="parking"
-            value={preferences.parking}
-            onChange={(e) => onUpdate({ ...preferences, parking: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">Select parking preference</option>
-            {parkingOptions.map(option => (
-              <option key={option} value={option.toLowerCase().replace(/\s+/g, '_')}>
-                {option}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="flex gap-4">

@@ -51,7 +51,9 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
 
   // Save commute preferences
   fastify.post('/api/users/commute-preferences', async (request, reply) => {
-    return axios.post(`${USER_SERVICE_URL}/users/commute-preferences`, request.body)
+    return axios.post(`${USER_SERVICE_URL}/users/commute-preferences`, request.body, {
+      headers: request.headers
+    })
     .then(response => {
       return response.data;
     })
@@ -68,7 +70,9 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
 
   // Save housing preferences
   fastify.post('/api/users/housing-preferences', async (request, reply) => {
-    return axios.post(`${USER_SERVICE_URL}/users/housing-preferences`, request.body)
+    return axios.post(`${USER_SERVICE_URL}/users/housing-preferences`, request.body, {
+      headers: request.headers
+    })
     .then(response => {
       return response.data;
     })
@@ -85,7 +89,9 @@ async function userRoutes(fastify: FastifyInstance, opts: FastifyPluginOptions):
 
   // Save amenities preferences
   fastify.post('/api/users/amenities-preferences', async (request, reply) => {
-    return axios.post(`${USER_SERVICE_URL}/users/amenities-preferences`, request.body)
+    return axios.post(`${USER_SERVICE_URL}/users/amenities-preferences`, request.body, {
+      headers: request.headers
+    })
     .then(response => {
       return response.data;
     })
